@@ -1,26 +1,34 @@
-team_name: "your-team-name"   # ← change this to whatever you registered as
+team_name: "NeuraForge"   
 
 primary_contact:
-  name: "Your Name"
-  email: "your@email.com"
-  phone: "+91-XXXXXXXXXX"
+  name: "Anusha Bachu"
+  email: "anushabachu07@gmail.com"
+  phone: "+91-7569086279"
 
 team_members:
-  - name: "Your Name"
-    email: "your@email.com"
-    role: "Solo"
+  - name: "Apurva T N"
+    email: "apurvathangamariappan@gmail.com"
 
-github_repo: "https://github.com/YOURUSERNAME/redrob-ranker"
-sandbox_link: "https://huggingface.co/spaces/YOURUSERNAME/redrob-ranker"
+team_members:
+  - name: "Purandhareswari Kommineni"
+    email: "purandha2006@gmail.com"
+
+team_members:
+  - name: "Durga Divija Sri Sai P"
+    email: "pagadaladivija08@gmail.com"
+    
+
+github_repo: "https://github.com/anusha-coder1/redrob-ranker"
+sandbox_link: "https://huggingface.co/spaces/Anusha2007/redrob-ranker"
 
 reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv"
 
 compute:
-  platform: "your laptop"        # e.g. "HP laptop, 16GB RAM"
+  platform: "laptop"        
   cpu_cores: 8
   ram_gb: 16
-  python_version: "3.11.4"       # run python --version to check yours
-  os: "Windows 11"               # or macOS / Ubuntu
+  python_version: "3.11.4"       
+  os: "Windows 11"               
   uses_gpu_for_inference: false
   has_network_during_ranking: false
   pre_computation_required: false
