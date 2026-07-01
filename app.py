@@ -1,73 +1,86 @@
-import streamlit as st
+import gradio as gr
 import json
-import pandas as pd
-import sys, os
+import csv
+import io
+import sys
+import os
 
 sys.path.insert(0, os.path.dirname(__file__))
-from rank import score_candidate, make_reasoning, load_candidates
+from rank import score_candidate, make_reasoning, title_score, skill_score, experience_score
 
-st.title("Redrob Candidate Ranker")
-st.write("Upload a candidates JSON/JSONL file and get a ranked CSV back.")
-st.caption("Senior AI Engineer JD · Redrob Hackathon Submission")
+def rank_candidates(file):
+    if file is None:
+        return "Please upload a file.", None
 
-st.info("This is a demo sandbox. Upload up to 100-200 candidates to test. The full 100K run happens locally.")
-
-uploaded = st.file_uploader("Upload candidates (.json or .jsonl)", type=["json", "jsonl"])
-
-if uploaded:
     try:
-        content = uploaded.read().decode("utf-8")
-        if uploaded.name.endswith(".jsonl"):
+        with open(file.name, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        if file.name.endswith(".jsonl"):
             candidates = [json.loads(l) for l in content.splitlines() if l.strip()]
         else:
             candidates = json.loads(content)
-        st.write(f"Loaded {len(candidates)} candidates")
+            if isinstance(candidates, dict):
+                candidates = [candidates]
     except Exception as e:
-        st.error(f"Couldn't parse file: {e}")
-        st.stop()
+        return f"Error reading file: {e}", None
 
     if len(candidates) > 300:
-        st.warning("Trimming to 300 for sandbox demo")
         candidates = candidates[:300]
 
-    with st.spinner("Scoring..."):
-        results = []
-        for c in candidates:
-            from rank import title_score, skill_score, experience_score
-            p = c.get("profile", {})
-            sc = score_candidate(c)
-            results.append({
-                "candidate_id": c["candidate_id"],
-                "score": sc,
-                "title": p.get("current_title", ""),
-                "yoe": p.get("years_of_experience", 0),
-                "location": p.get("location", ""),
-                "_c": c,
-                "t_s": title_score(p.get("current_title", "")),
-                "s_s": skill_score(c.get("skills", [])),
-                "e_s": experience_score(c),
-            })
+    results = []
+    for c in candidates:
+        p = c.get("profile", {})
+        sc = score_candidate(c)
+        results.append({
+            "candidate_id": c["candidate_id"],
+            "score": sc,
+            "title": p.get("current_title", ""),
+            "yoe": p.get("years_of_experience", 0),
+            "location": p.get("location", ""),
+            "t_s": title_score(p.get("current_title", "")),
+            "s_s": skill_score(c.get("skills", [])),
+            "e_s": experience_score(c),
+            "_c": c,
+        })
 
-    df = pd.DataFrame(results).sort_values("score", ascending=False).reset_index(drop=True)
-    df["rank"] = range(1, len(df) + 1)
-    top = df.head(100)
+    results.sort(key=lambda x: (-x["score"], x["candidate_id"]))
+    top = results[:100]
 
-    st.success(f"Done! Showing top {min(len(top), 100)}")
-    st.dataframe(top[["rank", "candidate_id", "score", "title", "yoe", "location"]])
-
-    # build csv
-    import io, csv
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow(["candidate_id", "rank", "score", "reasoning"])
-    for _, row in top.iterrows():
+    table_rows = []
+
+    for i, row in enumerate(top, 1):
         c = row["_c"]
         r = make_reasoning(c, {"skill": row["s_s"], "exp": row["e_s"], "title": row["t_s"]})
-        w.writerow([row["candidate_id"], int(row["rank"]), round(row["score"], 4), r])
+        w.writerow([row["candidate_id"], i, round(row["score"], 4), r])
+        table_rows.append([i, row["candidate_id"], round(row["score"], 4), row["title"], row["yoe"], row["location"]])
 
-    st.download_button("Download CSV", buf.getvalue().encode(), "submission.csv", "text/csv")
+    out_path = "/tmp/submission.csv"
+    with open(out_path, "w") as f:
+        f.write(buf.getvalue())
 
-    # quick stats
-    col1, col2 = st.columns(2)
-    col1.metric("Top score", f"{df['score'].iloc[0]:.3f}")
-    col2.metric("Median score", f"{df['score'].median():.3f}")
+    summary = f"Ranked {len(results)} candidates. Showing top 20 preview.\n\n"
+    summary += f"{'Rank':<5} {'ID':<15} {'Score':<7} {'Title':<35} {'YoE':<5} Location\n"
+    summary += "-" * 90 + "\n"
+    for row in table_rows[:20]:
+        summary += f"{row[0]:<5} {row[1]:<15} {row[2]:<7.3f} {str(row[3])[:34]:<35} {row[4]:<5} {row[5]}\n"
+
+    return summary, out_path
+
+
+demo = gr.Interface(
+    fn=rank_candidates,
+    inputs=gr.File(label="Upload candidates (.json or .jsonl)"),
+    outputs=[
+        gr.Textbox(label="Results (top 20 preview)", lines=25),
+        gr.File(label="Download submission.csv"),
+    ],
+    title="Redrob Candidate Ranker",
+    description="Upload a candidates JSON/JSONL file to get a ranked CSV. Senior AI Engineer JD · Redrob Hackathon.",
+)
+
+if __name__ == "__main__":
+    demo.launch()
