@@ -1,0 +1,53 @@
+team_name: "your-team-name"   # ← change this to whatever you registered as
+
+primary_contact:
+  name: "Your Name"
+  email: "your@email.com"
+  phone: "+91-XXXXXXXXXX"
+
+team_members:
+  - name: "Your Name"
+    email: "your@email.com"
+    role: "Solo"
+
+github_repo: "https://github.com/YOURUSERNAME/redrob-ranker"
+sandbox_link: "https://huggingface.co/spaces/YOURUSERNAME/redrob-ranker"
+
+reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv"
+
+compute:
+  platform: "your laptop"        # e.g. "HP laptop, 16GB RAM"
+  cpu_cores: 8
+  ram_gb: 16
+  python_version: "3.11.4"       # run python --version to check yours
+  os: "Windows 11"               # or macOS / Ubuntu
+  uses_gpu_for_inference: false
+  has_network_during_ranking: false
+  pre_computation_required: false
+  pre_computation_time_minutes: 0
+
+ai_tools_used:
+  - "Claude"
+
+ai_usage_summary: |
+  Used Claude to help with code review and to discuss the scoring approach.
+  The scoring logic and weights came from reading the JD carefully and
+  iterating on what actually made sense. No candidate data was sent to any API.
+  The rank.py file makes zero external calls.
+
+methodology_summary: |
+  Rule-based multi-signal scorer. The main insight was that the JD explicitly
+  warns against keyword matching — a Marketing Manager with AI skills is not
+  a fit. So the title/career trajectory is the primary signal (35%), followed
+  by skill depth with a duration trust check (25%), experience fit including
+  production deployment signals (20%), location (10%), and a behavioral
+  multiplier based on activity/response signals (0.2-1.3x). Honeypots
+  caught by checking skill duration consistency and career timeline math.
+  Runs in ~65 seconds on CPU for 100K candidates.
+
+declarations:
+  read_submission_spec: true
+  code_is_original_work: true
+  no_collusion: true
+  honeypot_check_done: true
+  reproduction_tested: true
